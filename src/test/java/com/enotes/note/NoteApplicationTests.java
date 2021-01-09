@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +23,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -41,7 +41,7 @@ class NoteApplicationTests {
   @Autowired
   private MockMvc mvc;
 
-  private ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
 
   @Test
@@ -88,12 +88,59 @@ class NoteApplicationTests {
     assertEquals(errorMessage, secondMvcResult.getResponse().getContentAsString());
   }
 
+  @Test
+  public void testSignInForExistingUser() throws Exception {
+    final User user = User.builder("John").withPassword("122334").build();
+
+    final ResultActions postResponse = signUpUser(user);
+
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final AuthenticationToken authenticationToken = fromJson(mvcResult.getResponse().getContentAsString(), AuthenticationToken.class);
+
+    assertNotNull(authenticationToken.getAccessToken());
+    assertNotNull(authenticationToken.getRefreshToken());
+
+
+    final ResultActions signInPostResponse = signInUser(user);
+
+    final MvcResult signInMvcResult = signInPostResponse
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final AuthenticationToken signInAuthenticationToken = fromJson(signInMvcResult.getResponse().getContentAsString(), AuthenticationToken.class);
+
+    assertNotEquals(authenticationToken.getAccessToken(), signInAuthenticationToken.getAccessToken());
+    assertNotEquals(authenticationToken.getRefreshToken(), signInAuthenticationToken.getRefreshToken());
+  }
+
+  @Test
+  public void testSignInForNotExistingUser() throws Exception {
+    final User user = User.builder("John").withPassword("122334").build();
+
+    final String errorMessage = "The username or password is incorrect";
+    final MvcResult signInMvcResult = signInUser(user)
+        .andDo(print())
+        .andExpect(status().isBadRequest())
+        .andReturn();
+
+    assertEquals(errorMessage, signInMvcResult.getResponse().getContentAsString());
+  }
+
+  private ResultActions signInUser(final User user) throws Exception {
+    return postRequest(user, AuthenticationController.SIGNIN);
+  }
+
   private ResultActions signUpUser(final User user) throws Exception {
     return postRequest(user, AuthenticationController.SIGNUP);
   }
 
   private ResultActions postRequest(final User user, String path) throws Exception {
-    return mvc.perform(post(PathBuilder.buildPath('/', PathBuilder.AUTHENTICATION, AuthenticationController.SIGNUP))
+    return mvc.perform(post(PathBuilder.buildPath('/', PathBuilder.AUTHENTICATION, path))
         .content(asJsonString(user))
         .contentType(MediaType.APPLICATION_JSON)
         .accept(MediaType.APPLICATION_JSON));

@@ -44,4 +44,31 @@ public class AuthenticationService {
     return new UserDetails.Builder(user.getUserName(), Password.hashPassword(user.getPassword()))
         .build();
   }
+
+  /**
+   * Sign in the given user and returns a valid token
+   * @param user user to signUp
+   * @return valid token unique for the user
+   * @throws AuthenticationException if the user name or password is incorrect
+   */
+  public AuthenticationToken signIn(User user) {
+    UserDetails storedUser = authenticate(user);
+
+    final TokenInfo accessToken = this.tokenProvider.generateToken(storedUser, TokenProvider.TokenType.ACCESS);
+    final TokenInfo refreshToken = this.tokenProvider.generateToken(storedUser, TokenProvider.TokenType.REFRESH);
+
+    storedUser = storedUser.toBuilder()
+        .isTokenValid(true)
+        .withRefreshTokenId(refreshToken.getId())
+        .build();
+    this.userRepository.put(storedUser.getUserName(), storedUser);
+
+    return new AuthenticationToken(accessToken.getToken(), refreshToken.getToken());
+  }
+
+  private UserDetails authenticate(User user) {
+    return userRepository.findById(user.getUserName())
+        .filter(hashedUser -> Password.checkPassword(user.getPassword(), hashedUser.getPassword()))
+    .orElseThrow(() -> new AuthenticationException("The username or password is incorrect"));
+  }
 }

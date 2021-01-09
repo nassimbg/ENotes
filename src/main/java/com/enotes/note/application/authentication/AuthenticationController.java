@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
   public static final String SIGNUP = "signup";
+  public static final String SIGNIN = "signin";
 
   private final AuthenticationService authenticationService;
 
@@ -27,5 +28,10 @@ public class AuthenticationController {
   @PostMapping(SIGNUP)
   public AuthenticationToken signUp(@RequestBody User user) {
     return authenticationService.signUp(user);
+  }
+
+  @PostMapping(SIGNIN)
+  public AuthenticationToken signIn(@RequestBody User user) {
+    return authenticationService.signIn(user);
   }
 }

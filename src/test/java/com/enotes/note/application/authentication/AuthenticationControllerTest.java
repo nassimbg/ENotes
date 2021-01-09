@@ -2,6 +2,7 @@ package com.enotes.note.application.authentication;
 
 import com.enotes.note.application.PathBuilder;
 import com.enotes.note.service.authentication.AlreadyExistsException;
+import com.enotes.note.service.authentication.AuthenticationException;
 import com.enotes.note.service.authentication.AuthenticationService;
 import com.enotes.note.service.authentication.AuthenticationToken;
 import com.enotes.note.service.authentication.User;
@@ -68,7 +69,6 @@ class AuthenticationControllerTest {
         .thenReturn(new AuthenticationToken(user.getUserName(), user.getUserName()))
         .thenThrow(new AlreadyExistsException(errorMessage));
 
-
     final ResultActions postResponse = signUpUser(user);
 
     final MvcResult mvcResult = postResponse
@@ -90,12 +90,53 @@ class AuthenticationControllerTest {
     assertEquals(errorMessage, secondMvcResult.getResponse().getContentAsString());
   }
 
+  @Test
+  public void testSignInForExistingUser() throws Exception {
+    final User user = User.builder("John").withPassword("122334").build();
+
+    Mockito.when(authenticationService.signIn(Mockito.eq(user))).thenReturn(new AuthenticationToken(user.getUserName(),
+        user.getUserName()));
+
+    final ResultActions postResponse = signInUser(user);
+
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final AuthenticationToken authenticationToken = fromJson(mvcResult.getResponse().getContentAsString(), AuthenticationToken.class);
+
+    assertEquals(user.getUserName(), authenticationToken.getAccessToken());
+  }
+
+  @Test
+  public void testSignInForNotExistingUser() throws Exception {
+    final User user = User.builder("John").withPassword("122334").build();
+
+    final String errorMessage = "The username or password is incorrect";
+    Mockito.when(authenticationService.signIn(Mockito.eq(user))).thenThrow(new AuthenticationException(errorMessage));
+
+    final ResultActions postResponse = signInUser(user);
+
+    final MvcResult secondMvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isBadRequest())
+        .andReturn();
+
+    assertEquals(errorMessage, secondMvcResult.getResponse().getContentAsString());
+  }
+
+  private ResultActions signInUser(final User user) throws Exception {
+    return postRequest(user, AuthenticationController.SIGNIN);
+  }
+
+
   private ResultActions signUpUser(final User user) throws Exception {
     return postRequest(user, AuthenticationController.SIGNUP);
   }
 
   private ResultActions postRequest(final User user, String path) throws Exception {
-    return mvc.perform(post(PathBuilder.buildPath('/', PathBuilder.AUTHENTICATION, AuthenticationController.SIGNUP))
+    return mvc.perform(post(PathBuilder.buildPath('/', PathBuilder.AUTHENTICATION, path))
         .content(asJsonString(user))
         .contentType(MediaType.APPLICATION_JSON)
     .accept(MediaType.APPLICATION_JSON));

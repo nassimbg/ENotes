@@ -21,4 +21,9 @@ public class InMemoryUserRepository implements UserRepository {
   public Optional<UserDetails> findById(final String key) {
     return Optional.ofNullable(cache.get(key));
   }
+
+  @Override
+  public void put(final String key, final UserDetails value) {
+    cache.put(key, value);
+  }
 }
