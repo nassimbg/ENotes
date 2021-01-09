@@ -66,9 +66,38 @@ public class AuthenticationService {
     return new AuthenticationToken(accessToken.getToken(), refreshToken.getToken());
   }
 
+  /**
+   * Given the {@link AuthenticationToken} it tries to generate a new access token if the refresh token is valid
+   * @param authenticationToken the authentication token that contains that is used to generate the new token
+   * @return return a {@link AuthenticationToken} with the new access token and same refresh token if the incoming
+   * {@code authenticationToken} is valid
+   * @throws AuthenticationException if the incoming {@code authenticationToken} is invalid
+   */
+  public AuthenticationToken refresh(final AuthenticationToken authenticationToken) {
+    final String refreshToken = authenticationToken.getRefreshToken();
+
+    final UserDetails storedUser = getUserDetailsAndValidate(refreshToken);
+
+    final String accessToken = this.tokenProvider.generateToken(storedUser, TokenProvider.TokenType.ACCESS).getToken();
+
+    return new AuthenticationToken(accessToken, refreshToken);
+  }
+
   private UserDetails authenticate(User user) {
     return userRepository.findById(user.getUserName())
         .filter(hashedUser -> Password.checkPassword(user.getPassword(), hashedUser.getPassword()))
     .orElseThrow(() -> new AuthenticationException("The username or password is incorrect"));
+  }
+
+  private UserDetails getUserDetailsAndValidate(final String refreshToken) {
+    final TokenInfo tokenInfo = tokenProvider.extractTokenInfo(refreshToken, TokenProvider.TokenType.REFRESH);
+    final UserDetails storedUser = userRepository.findById(tokenInfo.getUserName())
+        .orElseThrow(() -> new AuthenticationException("The object you requested does not exist"));
+
+    if (!tokenInfo.isValid() || storedUser.isTokenInValidated()
+        || !storedUser.getRefreshTokenId().equals(tokenInfo.getId())) {
+      throw new AuthenticationException("The provided Refresh Token is either expired or has been revoked");
+    }
+    return storedUser;
   }
 }

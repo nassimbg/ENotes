@@ -1,5 +1,6 @@
 package com.enotes.note.service.authentication;
 
+import com.enotes.note.repository.authentication.UserDetails;
 import com.enotes.note.repository.authentication.UserRepository;
 import com.enotes.note.service.authentication.util.TokenProvider;
 
@@ -99,6 +100,166 @@ class AuthenticationServiceTest {
     });
 
     String expectedMessage = "The username or password is incorrect";
+    String actualMessage = exception.getMessage();
+
+    assertTrue(actualMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testRefreshToken() {
+    final String accessTokenValue = "accessTokenValue";
+    final String refreshTokenValue = "refreshTokenValue";
+    AuthenticationToken authenticationToken = new AuthenticationToken(accessTokenValue, refreshTokenValue);
+
+    final String userName = "John";
+    final String refreshTokenId = "1223";
+
+    final UserDetails user = new UserDetails.Builder(userName, "122334")
+        .isTokenValid(true)
+        .withRefreshTokenId(refreshTokenId)
+        .build();
+    TokenProvider tokenProvider = Mockito.mock(TokenProvider.class);
+    UserRepository clientPersister = Mockito.mock(UserRepository.class);
+
+    final String newAccessToken = "newAccessToken";
+    Mockito.when(tokenProvider.generateToken(Mockito.any(), Mockito.any())).thenReturn(new TokenInfo.Builder(newAccessToken).build());
+
+    final TokenInfo tokenInfo = new TokenInfo.Builder(refreshTokenValue).isValid(true).userName(userName).id(refreshTokenId).build();
+    Mockito.when(tokenProvider.extractTokenInfo(Mockito.any(), Mockito.any())).thenReturn(tokenInfo);
+    Mockito.when(clientPersister.findById(Mockito.eq(userName))).thenReturn(Optional.of(user));
+
+    final AuthenticationService authenticationService = new AuthenticationService(clientPersister, tokenProvider);
+
+    final AuthenticationToken refreshedToken = authenticationService.refresh(authenticationToken);
+
+    assertEquals(refreshTokenValue, refreshedToken.getRefreshToken());
+    assertEquals(newAccessToken, refreshedToken.getAccessToken());
+  }
+
+  @Test
+  public void testFailingToRefreshTokenDueToTimeExpiring() {
+    final String accessTokenValue = "accessTokenValue";
+    final String refreshTokenValue = "refreshTokenValue";
+    AuthenticationToken authenticationToken = new AuthenticationToken(accessTokenValue, refreshTokenValue);
+
+    final String userName = "John";
+    TokenProvider tokenProvider = Mockito.mock(TokenProvider.class);
+    UserRepository clientPersister = Mockito.mock(UserRepository.class);
+
+    final TokenInfo tokenInfo = new TokenInfo.Builder(refreshTokenValue).isValid(false).userName(userName).id("1223").build();
+    Mockito.when(tokenProvider.extractTokenInfo(Mockito.any(), Mockito.any())).thenReturn(tokenInfo);
+
+    Mockito.when(clientPersister.findById(Mockito.eq(userName)))
+        .thenReturn(Optional.of(Mockito.mock(UserDetails.class)));
+
+    final AuthenticationService authenticationService = new AuthenticationService(clientPersister, tokenProvider);
+
+    Exception exception = assertThrows(AuthenticationException.class, () -> {
+      authenticationService.refresh(authenticationToken);
+    });
+
+    String expectedMessage = "The provided Refresh Token is either expired or has been revoked";
+    String actualMessage = exception.getMessage();
+
+    assertTrue(actualMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testFailingToRefreshTokenDueUserDoesntExist() {
+    final String accessTokenValue = "accessTokenValue";
+    final String refreshTokenValue = "refreshTokenValue";
+    AuthenticationToken authenticationToken = new AuthenticationToken(accessTokenValue, refreshTokenValue);
+
+    final String userName = "John";
+    TokenProvider tokenProvider = Mockito.mock(TokenProvider.class);
+    UserRepository clientPersister = Mockito.mock(UserRepository.class);
+
+    final String newAccessToken = "newAccessToken";
+    Mockito.when(tokenProvider.generateToken(Mockito.any(), Mockito.any()))
+        .thenReturn(new TokenInfo.Builder(newAccessToken).build());
+
+    final TokenInfo tokenInfo = new TokenInfo.Builder(refreshTokenValue).isValid(true).userName(userName).id("1223").build();
+    Mockito.when(tokenProvider.extractTokenInfo(Mockito.any(), Mockito.any())).thenReturn(tokenInfo);
+    Mockito.when(clientPersister.findById(Mockito.eq(userName))).thenReturn(Optional.empty());
+
+    final AuthenticationService authenticationService = new AuthenticationService(clientPersister, tokenProvider);
+
+    Exception exception = assertThrows(AuthenticationException.class, () -> {
+      authenticationService.refresh(authenticationToken);
+    });
+
+    String expectedMessage = "The object you requested does not exist";
+    String actualMessage = exception.getMessage();
+
+    assertTrue(actualMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testFailingToRefreshTokenDueUserInvalidatedToken() {
+    final String accessTokenValue = "accessTokenValue";
+    final String refreshTokenValue = "refreshTokenValue";
+    AuthenticationToken authenticationToken = new AuthenticationToken(accessTokenValue, refreshTokenValue);
+
+    final String userName = "John";
+    final String refreshTokenId = "1223";
+
+    final UserDetails user = new UserDetails.Builder(userName, "122334")
+        .isTokenValid(false)
+        .withRefreshTokenId(refreshTokenId)
+        .build();
+    TokenProvider tokenProvider = Mockito.mock(TokenProvider.class);
+    UserRepository clientPersister = Mockito.mock(UserRepository.class);
+
+    final String newAccessToken = "newAccessToken";
+    Mockito.when(tokenProvider.generateToken(Mockito.any(), Mockito.any())).thenReturn(new TokenInfo.Builder(newAccessToken).build());
+
+    final TokenInfo tokenInfo = new TokenInfo.Builder(refreshTokenValue).isValid(true).userName(userName).id(refreshTokenId).build();
+    Mockito.when(tokenProvider.extractTokenInfo(Mockito.any(), Mockito.any())).thenReturn(tokenInfo);
+    Mockito.when(clientPersister.findById(Mockito.eq(userName))).thenReturn(Optional.of(user));
+
+    final AuthenticationService authenticationService = new AuthenticationService(clientPersister, tokenProvider);
+
+    Exception exception = assertThrows(AuthenticationException.class, () -> {
+      authenticationService.refresh(authenticationToken);
+    });
+
+    String expectedMessage = "The provided Refresh Token is either expired or has been revoked";
+    String actualMessage = exception.getMessage();
+
+    assertTrue(actualMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testFailingToRefreshTokenDueTokenIdIsDifferentFromAlreadyStored() {
+    final String accessTokenValue = "accessTokenValue";
+    final String refreshTokenValue = "refreshTokenValue";
+    AuthenticationToken authenticationToken = new AuthenticationToken(accessTokenValue, refreshTokenValue);
+
+    final String userName = "John";
+    final String refreshTokenId = "1223";
+
+    final String anotherRefreshToken = "zzzzz";
+    final UserDetails user = new UserDetails.Builder(userName, "122334")
+        .isTokenValid(true)
+        .withRefreshTokenId(anotherRefreshToken)
+        .build();
+    TokenProvider tokenProvider = Mockito.mock(TokenProvider.class);
+    UserRepository clientPersister = Mockito.mock(UserRepository.class);
+
+    final String newAccessToken = "newAccessToken";
+    Mockito.when(tokenProvider.generateToken(Mockito.any(), Mockito.any())).thenReturn(new TokenInfo.Builder(newAccessToken).build());
+
+    final TokenInfo tokenInfo = new TokenInfo.Builder(refreshTokenValue).isValid(true).userName(userName).id(refreshTokenId).build();
+    Mockito.when(tokenProvider.extractTokenInfo(Mockito.any(), Mockito.any())).thenReturn(tokenInfo);
+    Mockito.when(clientPersister.findById(Mockito.eq(userName))).thenReturn(Optional.of(user));
+
+    final AuthenticationService authenticationService = new AuthenticationService(clientPersister, tokenProvider);
+
+    Exception exception = assertThrows(AuthenticationException.class, () -> {
+      authenticationService.refresh(authenticationToken);
+    });
+
+    String expectedMessage = "The provided Refresh Token is either expired or has been revoked";
     String actualMessage = exception.getMessage();
 
     assertTrue(actualMessage.contains(expectedMessage));

@@ -17,6 +17,7 @@ public class AuthenticationController {
 
   public static final String SIGNUP = "signup";
   public static final String SIGNIN = "signin";
+  public static final String TOKEN = "token";
 
   private final AuthenticationService authenticationService;
 
@@ -33,5 +34,10 @@ public class AuthenticationController {
   @PostMapping(SIGNIN)
   public AuthenticationToken signIn(@RequestBody User user) {
     return authenticationService.signIn(user);
+  }
+
+  @PostMapping(TOKEN)
+  public AuthenticationToken token(@RequestBody AuthenticationToken authenticationToken) {
+    return authenticationService.refresh(authenticationToken);
   }
 }

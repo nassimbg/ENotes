@@ -118,26 +118,61 @@ class AuthenticationControllerTest {
 
     final ResultActions postResponse = signInUser(user);
 
-    final MvcResult secondMvcResult = postResponse
+    final MvcResult mvcResult = postResponse
         .andDo(print())
         .andExpect(status().isBadRequest())
         .andReturn();
 
-    assertEquals(errorMessage, secondMvcResult.getResponse().getContentAsString());
+    assertEquals(errorMessage, mvcResult.getResponse().getContentAsString());
+  }
+
+  @Test
+  public void testRefresh() throws Exception {
+    final String refreshToken = "refreshToken";
+    final AuthenticationToken authenticationToken = new AuthenticationToken("accessToken", refreshToken);
+
+    final String newAccessToken = "newAccessToken";
+    Mockito.when(authenticationService.refresh(Mockito.eq(authenticationToken)))
+        .thenReturn(new AuthenticationToken(newAccessToken, refreshToken));
+
+    final ResultActions postResponse = postRequest(authenticationToken, AuthenticationController.TOKEN);
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final AuthenticationToken newAuthenticationToken = fromJson(mvcResult.getResponse().getContentAsString(), AuthenticationToken.class);
+    assertEquals(newAccessToken, newAuthenticationToken.getAccessToken());
+    assertEquals(refreshToken, newAuthenticationToken.getRefreshToken());
+  }
+
+  @Test
+  public void testFailingRefresh() throws Exception {
+    final AuthenticationToken authenticationToken = new AuthenticationToken("accessToken", "refreshToken");
+
+    final String errorMessage = "Can not refresh";
+    Mockito.when(authenticationService.refresh(Mockito.eq(authenticationToken)))
+        .thenThrow(new AuthenticationException(errorMessage));
+
+    final ResultActions postResponse = postRequest(authenticationToken, AuthenticationController.TOKEN);
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isBadRequest())
+        .andReturn();
+    assertEquals(errorMessage, mvcResult.getResponse().getContentAsString());
   }
 
   private ResultActions signInUser(final User user) throws Exception {
     return postRequest(user, AuthenticationController.SIGNIN);
   }
 
-
   private ResultActions signUpUser(final User user) throws Exception {
     return postRequest(user, AuthenticationController.SIGNUP);
   }
 
-  private ResultActions postRequest(final User user, String path) throws Exception {
+  private ResultActions postRequest(final Object ob, String path) throws Exception {
     return mvc.perform(post(PathBuilder.buildPath('/', PathBuilder.AUTHENTICATION, path))
-        .content(asJsonString(user))
+        .content(asJsonString(ob))
         .contentType(MediaType.APPLICATION_JSON)
     .accept(MediaType.APPLICATION_JSON));
   }

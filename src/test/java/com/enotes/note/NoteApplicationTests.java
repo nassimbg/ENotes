@@ -43,7 +43,6 @@ class NoteApplicationTests {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-
   @Test
   public void testSignUp() throws Exception {
     final User user = User.builder("John").withPassword("122334").build();
@@ -131,6 +130,48 @@ class NoteApplicationTests {
     assertEquals(errorMessage, signInMvcResult.getResponse().getContentAsString());
   }
 
+  @Test
+  public void testRefreshToken() throws Exception {
+    final User user = User.builder("John").withPassword("122334").build();
+
+    final ResultActions postResponse = signUpUser(user);
+
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+    final AuthenticationToken authenticationToken = fromJson(mvcResult.getResponse().getContentAsString(), AuthenticationToken.class);
+
+    assertNotNull(authenticationToken.getAccessToken());
+
+    final ResultActions response = postRequest(authenticationToken, AuthenticationController.TOKEN);
+    final MvcResult refreshMvcResult = response
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final AuthenticationToken newAuthenticationToken = fromJson(refreshMvcResult.getResponse().getContentAsString(), AuthenticationToken.class);
+
+    assertNotEquals(authenticationToken.getAccessToken(), newAuthenticationToken.getAccessToken());
+    assertEquals(authenticationToken.getRefreshToken(), newAuthenticationToken.getRefreshToken());
+  }
+
+  @Test
+  public void testFailingToRefreshTokenDueUserDoesntExist() throws Exception {
+    String refreshToken = "eyJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJhdXRoLWJhY2tlbmQiLCJzdWIiOiJKb2huIiwianRpIjoiMzA3ZmI2ZDg1OWZlNGYzN2I4Mzg5YjMyYjg1OTljZjEiLCJleHAiOjE2MTEwOTcyMTcsImlhdCI6MTYxMDIzMzIxN30.P9HGXRcQV3sniM0uhMM4zwXCF7a5J1G_3zeakd8mBY7JJXctkOv-dezuHdLnTB_KTc3IG02aWfNYtWvB05bReg";
+    String accessToken = "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJhdXRoLWJhY2tlbmQiLCJzdWIiOiJKb2huIiwianRpIjoiOGVlMmQ4MmFhNTkwNDc3NmJhZWJkZGI2Zjk2MDk3OTgiLCJleHAiOjE2MTAyMzY4MjEsImlhdCI6MTYxMDIzMzIyMX0.mJt_5XeFXtMYMEgYUWm6CJz8lNguR_5wYyjzuCtr9bSmh3fEqGgmXjVfjOW6PwTkcKegFccs7z80TvKFHUdIufrLWbpGhHF8nL69YhPqZ1hKE9-ZkbwtStfnH0CuCUfzdWvW1XbFVKmCWl3q95Pw7HImpQ8QBX53uf5pBRHLQMZFcCItulztD3q_QK2jWx3WJdlKyIWz150um55wroKAo7gwnnoSN_5RLWiX2ZjGjsxG80NErb0qDXa8CCVuAoiKD4Q_c6nFjKQEYhE21HUBTvtUWIv1wiBzo-4wcsfi0rymoZ1INBT3D4yTbllO5hecuus-rLuhsT_evJPxTuRGGQ";
+
+    final AuthenticationToken authenticationToken = new AuthenticationToken(accessToken, refreshToken);
+
+   final ResultActions response = postRequest(authenticationToken, AuthenticationController.TOKEN);
+   final MvcResult refreshMvcResult = response
+       .andDo(print())
+       .andExpect(status().isBadRequest())
+       .andReturn();
+
+    assertEquals("The object you requested does not exist", refreshMvcResult.getResponse().getContentAsString());
+  }
+
   private ResultActions signInUser(final User user) throws Exception {
     return postRequest(user, AuthenticationController.SIGNIN);
   }
@@ -139,9 +180,9 @@ class NoteApplicationTests {
     return postRequest(user, AuthenticationController.SIGNUP);
   }
 
-  private ResultActions postRequest(final User user, String path) throws Exception {
+  private ResultActions postRequest(final Object ob, String path) throws Exception {
     return mvc.perform(post(PathBuilder.buildPath('/', PathBuilder.AUTHENTICATION, path))
-        .content(asJsonString(user))
+        .content(asJsonString(ob))
         .contentType(MediaType.APPLICATION_JSON)
         .accept(MediaType.APPLICATION_JSON));
   }
