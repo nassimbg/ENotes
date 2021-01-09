@@ -5,6 +5,7 @@ import com.enotes.note.application.PathBuilder;
 import com.enotes.note.application.authentication.AuthenticationController;
 import com.enotes.note.service.authentication.AuthenticationToken;
 import com.enotes.note.service.authentication.User;
+import com.enotes.note.service.authentication.UserStatus;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -25,6 +26,7 @@ import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(
     locations = "classpath:application-integrationtest.properties")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class NoteApplicationTests {
+class AuthenticationIntegrationTest {
 
   @Autowired
   private MockMvc mvc;
@@ -170,6 +172,52 @@ class NoteApplicationTests {
        .andReturn();
 
     assertEquals("The object you requested does not exist", refreshMvcResult.getResponse().getContentAsString());
+  }
+
+  @Test
+  public void testFailingToRefreshTokenDueUserInvalidatedToken() throws Exception {
+    final User user = User.builder("John").withPassword("122334").build();
+    final ResultActions postResponse = signUpUser(user);
+
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+    final AuthenticationToken authenticationToken = fromJson(mvcResult.getResponse().getContentAsString(), AuthenticationToken.class);
+
+    postRequest(authenticationToken, AuthenticationController.SIGNOUT)
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final ResultActions response = postRequest(authenticationToken, AuthenticationController.TOKEN);
+    final MvcResult refreshMvcResult = response
+        .andDo(print())
+        .andExpect(status().isBadRequest())
+        .andReturn();
+
+    assertEquals("The provided Refresh Token is either expired or has been revoked", refreshMvcResult.getResponse().getContentAsString());
+  }
+
+  @Test
+  public void testSignOut() throws Exception {
+    final User user = User.builder("John").withPassword("122334").build();
+    final ResultActions postResponse = signUpUser(user);
+
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+    final AuthenticationToken authenticationToken = fromJson(mvcResult.getResponse().getContentAsString(), AuthenticationToken.class);
+
+    final MvcResult signOutMvc = postRequest(authenticationToken, AuthenticationController.SIGNOUT)
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+    final UserStatus userStatus = fromJson(signOutMvc.getResponse().getContentAsString(), UserStatus.class);
+
+    assertEquals(user.getUserName(), userStatus.getUserName());
+    assertTrue(userStatus.logOut());
   }
 
   private ResultActions signInUser(final User user) throws Exception {

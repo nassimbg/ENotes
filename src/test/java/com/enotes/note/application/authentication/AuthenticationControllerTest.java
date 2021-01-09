@@ -6,6 +6,7 @@ import com.enotes.note.service.authentication.AuthenticationException;
 import com.enotes.note.service.authentication.AuthenticationService;
 import com.enotes.note.service.authentication.AuthenticationToken;
 import com.enotes.note.service.authentication.User;
+import com.enotes.note.service.authentication.UserStatus;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -159,6 +160,43 @@ class AuthenticationControllerTest {
         .andDo(print())
         .andExpect(status().isBadRequest())
         .andReturn();
+    assertEquals(errorMessage, mvcResult.getResponse().getContentAsString());
+  }
+
+  @Test
+  public void testSignOut() throws Exception {
+    final String refreshToken = "refreshToken";
+    final AuthenticationToken authenticationToken = new AuthenticationToken("accessToken", refreshToken);
+
+    final String userName = "user Name";
+    Mockito.when(authenticationService.signOut(Mockito.eq(authenticationToken)))
+        .thenReturn(new UserStatus(userName, true));
+
+    final ResultActions postResponse = postRequest(authenticationToken, AuthenticationController.SIGNOUT);
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final UserStatus userStatus = fromJson(mvcResult.getResponse().getContentAsString(), UserStatus.class);
+    assertEquals(userName, userStatus.getUserName());
+    assertTrue(userStatus.logOut());
+  }
+
+  @Test
+  public void testFailingSignOut() throws Exception {
+    final AuthenticationToken authenticationToken = new AuthenticationToken("accessToken", "refreshToken");
+
+    final String errorMessage = "Can sign out";
+    Mockito.when(authenticationService.signOut(Mockito.eq(authenticationToken)))
+        .thenThrow(new AuthenticationException(errorMessage));
+
+    final ResultActions postResponse = postRequest(authenticationToken, AuthenticationController.SIGNOUT);
+    final MvcResult mvcResult = postResponse
+        .andDo(print())
+        .andExpect(status().isBadRequest())
+        .andReturn();
+
     assertEquals(errorMessage, mvcResult.getResponse().getContentAsString());
   }
 

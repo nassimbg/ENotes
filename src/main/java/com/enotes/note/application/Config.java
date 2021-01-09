@@ -7,7 +7,9 @@ import com.enotes.note.service.authentication.util.JwtTokenProvider;
 import com.enotes.note.service.authentication.util.TokenProvider;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
+@Configuration
 public class Config {
 
   @Bean

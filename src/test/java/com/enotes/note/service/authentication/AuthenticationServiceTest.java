@@ -10,6 +10,8 @@ import org.mockito.Mockito;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class AuthenticationServiceTest {
 
@@ -263,5 +265,34 @@ class AuthenticationServiceTest {
     String actualMessage = exception.getMessage();
 
     assertTrue(actualMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testSignOut() {
+    final String accessTokenValue = "accessTokenValue";
+    final String refreshTokenValue = "refreshTokenValue";
+    AuthenticationToken authenticationToken = new AuthenticationToken(accessTokenValue, refreshTokenValue);
+
+    final String userName = "John";
+    final String refreshTokenId = "1223";
+
+    final UserDetails user = new UserDetails.Builder(userName, "122334")
+        .isTokenValid(true)
+        .withRefreshTokenId(refreshTokenId)
+        .build();
+    TokenProvider tokenProvider = Mockito.mock(TokenProvider.class);
+    UserRepository clientPersister = Mockito.mock(UserRepository.class);
+
+    final TokenInfo tokenInfo = new TokenInfo.Builder(refreshTokenValue).isValid(true).userName(userName).id(refreshTokenId).build();
+    Mockito.when(tokenProvider.extractTokenInfo(Mockito.any(), Mockito.any())).thenReturn(tokenInfo);
+    Mockito.when(clientPersister.findById(Mockito.eq(userName))).thenReturn(Optional.of(user));
+
+    final AuthenticationService authenticationService = new AuthenticationService(clientPersister, tokenProvider);
+
+    final UserStatus userStatus = authenticationService.signOut(authenticationToken);
+
+    verify(clientPersister, times(1)).put(userName, user.toBuilder().isTokenValid(false).build());
+    assertEquals(userName, userStatus.getUserName());
+    assertTrue(userStatus.logOut());
   }
 }

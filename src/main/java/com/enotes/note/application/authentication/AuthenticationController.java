@@ -4,6 +4,7 @@ import com.enotes.note.application.PathBuilder;
 import com.enotes.note.service.authentication.AuthenticationService;
 import com.enotes.note.service.authentication.AuthenticationToken;
 import com.enotes.note.service.authentication.User;
+import com.enotes.note.service.authentication.UserStatus;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ public class AuthenticationController {
 
   public static final String SIGNUP = "signup";
   public static final String SIGNIN = "signin";
+  public static final String SIGNOUT = "signout";
   public static final String TOKEN = "token";
 
   private final AuthenticationService authenticationService;
@@ -34,6 +36,11 @@ public class AuthenticationController {
   @PostMapping(SIGNIN)
   public AuthenticationToken signIn(@RequestBody User user) {
     return authenticationService.signIn(user);
+  }
+
+  @PostMapping(SIGNOUT)
+  public UserStatus signOut(@RequestBody AuthenticationToken authenticationToken) {
+    return authenticationService.signOut(authenticationToken);
   }
 
   @PostMapping(TOKEN)

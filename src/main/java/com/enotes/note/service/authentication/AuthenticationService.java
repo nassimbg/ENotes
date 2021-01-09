@@ -83,6 +83,23 @@ public class AuthenticationService {
     return new AuthenticationToken(accessToken, refreshToken);
   }
 
+  /**
+   * Given the {@link AuthenticationToken} it tries to sign out the user if the refresh token is valid
+   * @param authenticationToken the authentication token that contains that is used to generate the new token
+   * @return return a {@link UserStatus} containing the user name and log out status set to true if the incoming
+   * {@code authenticationToken} is valid
+   * @throws AuthenticationException if the incoming {@code authenticationToken} is invalid
+   */
+  public UserStatus signOut(AuthenticationToken authenticationToken) {
+    final String refreshToken = authenticationToken.getRefreshToken();
+    UserDetails storedUser = getUserDetailsAndValidate(refreshToken);
+
+    storedUser = storedUser.toBuilder().isTokenValid(false).build();
+    userRepository.put(storedUser.getUserName(), storedUser);
+
+    return new UserStatus(storedUser.getUserName(), true);
+  }
+
   private UserDetails authenticate(User user) {
     return userRepository.findById(user.getUserName())
         .filter(hashedUser -> Password.checkPassword(user.getPassword(), hashedUser.getPassword()))
