@@ -1,19 +1,18 @@
 package com.enotes.note;
 
-import com.enotes.note.application.Config;
+import com.enotes.note.application.Utils;
+import com.enotes.note.application.authentication.AuthenticationConfig;
 import com.enotes.note.application.PathBuilder;
 import com.enotes.note.application.authentication.AuthenticationController;
 import com.enotes.note.service.authentication.AuthenticationToken;
 import com.enotes.note.service.authentication.User;
 import com.enotes.note.service.authentication.UserStatus;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -27,13 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
 @SpringBootTest(classes = NoteApplication.class)
-@SpringJUnitConfig(Config.class)
+@SpringJUnitConfig(AuthenticationConfig.class)
 @AutoConfigureMockMvc
 @TestPropertySource(
     locations = "classpath:application-integrationtest.properties")
@@ -224,30 +222,16 @@ class AuthenticationIntegrationTest {
     return postRequest(user, AuthenticationController.SIGNIN);
   }
 
-  private ResultActions signUpUser(final User user) throws Exception {
+  public ResultActions signUpUser(final User user) throws Exception {
     return postRequest(user, AuthenticationController.SIGNUP);
   }
 
   private ResultActions postRequest(final Object ob, String path) throws Exception {
-    return mvc.perform(post(PathBuilder.buildPath('/', PathBuilder.AUTHENTICATION, path))
-        .content(asJsonString(ob))
-        .contentType(MediaType.APPLICATION_JSON)
-        .accept(MediaType.APPLICATION_JSON));
-  }
-
-  public String asJsonString(final Object obj) {
-    try {
-      return objectMapper.writeValueAsString(obj);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return Utils.postRequest(mvc, ob, PathBuilder.AUTHENTICATION, path, objectMapper);
   }
 
   public <T> T fromJson(String string, Class<T> clazz)
       throws IOException {
-
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    return objectMapper.readValue(string, clazz);
+    return Utils.fromJson(objectMapper, string, clazz);
   }
-
 }

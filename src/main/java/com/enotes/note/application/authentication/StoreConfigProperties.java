@@ -1,4 +1,4 @@
-package com.enotes.note.application;
+package com.enotes.note.application.authentication;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

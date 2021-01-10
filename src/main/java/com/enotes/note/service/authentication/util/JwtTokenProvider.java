@@ -1,6 +1,6 @@
 package com.enotes.note.service.authentication.util;
 
-import com.enotes.note.application.StoreConfigProperties;
+import com.enotes.note.application.authentication.StoreConfigProperties;
 import com.enotes.note.repository.authentication.UserDetails;
 import com.enotes.note.service.InternalServerErrorException;
 import com.enotes.note.service.authentication.TokenInfo;
@@ -24,7 +24,6 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.util.Date;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 
@@ -43,10 +42,6 @@ public final class JwtTokenProvider implements TokenProvider {
 
   public static final String SECRET_KEY = "secretKey";
   public static final String PRIVATE_KEY = "privateKey";
-
-  public static final String STORE_LOCATION = "store.location";
-  public static final String STORE_PWD = "store.pwd";
-  public static final String KEY_PWD = "store.keyPwd";
 
   private final Keys keys;
 
@@ -112,9 +107,9 @@ public final class JwtTokenProvider implements TokenProvider {
     KeyPair keyPair = io.jsonwebtoken.security.Keys.keyPairFor(RS256);
     storeKeyPair(keyStore, keyPwd, keyPair, keyAlias);
 
-    FileOutputStream fos = new FileOutputStream("publicKey");
-    fos.write(keyPair.getPublic().getEncoded());
-    fos.close();
+    try(FileOutputStream fos = new FileOutputStream("publicKey")) {
+      fos.write(keyPair.getPublic().getEncoded());
+    }
     return keyPair;
   }
 

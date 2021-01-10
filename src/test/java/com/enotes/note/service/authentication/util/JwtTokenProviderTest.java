@@ -1,6 +1,6 @@
 package com.enotes.note.service.authentication.util;
 
-import com.enotes.note.application.StoreConfigProperties;
+import com.enotes.note.application.authentication.StoreConfigProperties;
 import com.enotes.note.repository.authentication.UserDetails;
 
 import io.jsonwebtoken.Claims;
@@ -15,11 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.util.Date;
-import java.util.Properties;
 
-import static com.enotes.note.service.authentication.util.JwtTokenProvider.KEY_PWD;
-import static com.enotes.note.service.authentication.util.JwtTokenProvider.STORE_LOCATION;
-import static com.enotes.note.service.authentication.util.JwtTokenProvider.STORE_PWD;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class JwtTokenProviderTest {

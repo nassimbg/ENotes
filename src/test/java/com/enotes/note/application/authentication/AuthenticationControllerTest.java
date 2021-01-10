@@ -1,13 +1,13 @@
 package com.enotes.note.application.authentication;
 
 import com.enotes.note.application.PathBuilder;
+import com.enotes.note.application.Utils;
 import com.enotes.note.service.authentication.AlreadyExistsException;
 import com.enotes.note.service.authentication.AuthenticationException;
 import com.enotes.note.service.authentication.AuthenticationService;
 import com.enotes.note.service.authentication.AuthenticationToken;
 import com.enotes.note.service.authentication.User;
 import com.enotes.note.service.authentication.UserStatus;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -25,7 +24,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -209,24 +207,11 @@ class AuthenticationControllerTest {
   }
 
   private ResultActions postRequest(final Object ob, String path) throws Exception {
-    return mvc.perform(post(PathBuilder.buildPath('/', PathBuilder.AUTHENTICATION, path))
-        .content(asJsonString(ob))
-        .contentType(MediaType.APPLICATION_JSON)
-    .accept(MediaType.APPLICATION_JSON));
-  }
-
-  public String asJsonString(final Object obj) {
-    try {
-      return objectMapper.writeValueAsString(obj);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return Utils.postRequest(mvc, ob, PathBuilder.AUTHENTICATION, path, objectMapper);
   }
 
   public <T> T fromJson(String string, Class<T> clazz)
       throws IOException {
-
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    return objectMapper.readValue(string, clazz);
+    return Utils.fromJson(objectMapper, string, clazz);
   }
 }

@@ -1,4 +1,4 @@
-package com.enotes.note.application;
+package com.enotes.note.application.authentication;
 
 import com.enotes.note.repository.authentication.InMemoryUserRepository;
 import com.enotes.note.repository.authentication.UserRepository;
@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class Config {
+public class AuthenticationConfig {
 
   @Bean
   public AuthenticationService getAuthenticationService(UserRepository userRepository, TokenProvider tokenProvider) {
