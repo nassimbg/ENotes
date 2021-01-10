@@ -33,6 +33,7 @@ import static com.enotes.note.application.Utils.asJsonString;
 import static com.enotes.note.application.Utils.fromJson;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -138,6 +139,38 @@ public class NotesIntegrationTest {
     assertEquals(2, notes.size());
     assertEquals(noteId.getId(), notes.get(0).getId());
     assertEquals(noteId2.getId(), notes.get(1).getId());
+  }
+
+  @Test
+  public void testDeleteNote() throws Exception {
+    final AuthenticationToken authenticationToken = getAuthenticationToken();
+
+    final Note note = new Note(null,"title", "body");
+    final NoteId noteId = createNoteAndAssert(note, authenticationToken);
+
+    final ResultActions resultActions = mvc.perform(get(PathBuilder.buildPath(PathBuilder.NOTES, noteId.getId()))
+        .header("Authorization", "Bearer " + authenticationToken.getAccessToken())
+        .contentType(MediaType.APPLICATION_JSON)
+        .accept(MediaType.APPLICATION_JSON));
+
+    final MvcResult mvcResult = resultActions
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final Note actualNote = fromJson(objectMapper, mvcResult.getResponse().getContentAsString(), Note.class);
+
+    assertEquals(note.getTitle(), actualNote.getTitle());
+    assertEquals(note.getBody(), actualNote.getBody());
+
+    final ResultActions deleteActions = mvc.perform(delete(PathBuilder.buildPath(PathBuilder.NOTES, noteId.getId()))
+        .header("Authorization", "Bearer " + authenticationToken.getAccessToken())
+        .contentType(MediaType.APPLICATION_JSON));
+
+    final MvcResult deleteMvcResult = deleteActions
+        .andDo(print())
+        .andExpect(status().isNoContent())
+        .andReturn();
   }
 
   private NoteId createNoteAndAssert(final Note note,

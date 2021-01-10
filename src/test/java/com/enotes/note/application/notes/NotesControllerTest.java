@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -74,7 +75,7 @@ class NotesControllerTest {
     final Note note = new Note(null, "title", "body");
 
     final String id = "2233";
-    Mockito.when(notesService.getNote(Mockito.eq(id))).thenReturn(note);
+    Mockito.when(notesService.getNote(Mockito.any(), Mockito.eq(id))).thenReturn(note);
 
     final ResultActions resultActions = mvc.perform(get(PathBuilder.buildPath(PathBuilder.NOTES, id))
         .contentType(MediaType.APPLICATION_JSON)
@@ -120,6 +121,23 @@ class NotesControllerTest {
     assertEquals(2, notes.size());
     assertEquals(id, notes.get(0).getId());
     assertEquals(id2, notes.get(1).getId());
+  }
+
+  @WithMockUser
+  @Test
+  public void testDeleteNote() throws Exception {
+    final Note note = new Note(null, "title", "body");
+
+    final String id = "2233";
+
+    final ResultActions resultActions = mvc.perform(delete(PathBuilder.buildPath(PathBuilder.NOTES, id))
+        .contentType(MediaType.APPLICATION_JSON)
+        .accept(MediaType.APPLICATION_JSON));
+
+    final MvcResult mvcResult = resultActions
+        .andDo(print())
+        .andExpect(status().isNoContent())
+        .andReturn();
   }
 
   private ResultActions postRequest(final Object ob, String path) throws Exception {

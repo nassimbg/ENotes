@@ -12,4 +12,10 @@ public interface NotesRepository extends Repository<String, NotesDetails> {
    * @return all notes corresponding to the user with id {@code userId}
    */
   Collection<NotesDetails> findAll(UserId userId);
+
+  /**
+   * deletes the specified note from the repository
+   * @param key is the note id to delete
+   */
+  void delete(String key);
 }

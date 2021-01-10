@@ -32,7 +32,8 @@ public class NotesServiceTest {
     final String id = "note 1";
     final String noteTitle = "note title";
     final String noteBody = "note body";
-    final NotesDetails expectedNote = new NotesDetails.Builder(id, new UserId("user 1"))
+    final UserId userId = new UserId("user 1");
+    final NotesDetails expectedNote = new NotesDetails.Builder(id, userId)
         .withTitle(noteTitle)
         .withBody(noteBody)
         .build();
@@ -40,7 +41,7 @@ public class NotesServiceTest {
     Mockito.when(notesRepository.findById(id)).thenReturn(Optional.of(expectedNote));
     final NotesService notesService = new NotesService(notesRepository);
 
-    final Note note = notesService.getNote(id);
+    final Note note = notesService.getNote(userId.getId(), id);
 
     assertNotNull(noteTitle, note.getTitle());
     assertNotNull(noteBody, note.getBody());
@@ -53,7 +54,7 @@ public class NotesServiceTest {
 
 
     Exception exception = assertThrows(NotesException.class, () -> {
-      notesService.getNote("");
+      notesService.getNote("user 1", "");
     });
 
     String expectedMessage = "Note id: {" + "" + "} is invalid";
@@ -70,7 +71,7 @@ public class NotesServiceTest {
 
 
     Exception exception = assertThrows(NotesException.class, () -> {
-      notesService.getNote(id);
+      notesService.getNote("user 1", id);
     });
 
     String expectedMessage = "Note with id: {" + id + "} is not found";
