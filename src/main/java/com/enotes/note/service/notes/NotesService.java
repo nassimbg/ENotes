@@ -4,7 +4,9 @@ import com.enotes.note.repository.notes.NotesDetails;
 import com.enotes.note.repository.notes.NotesRepository;
 import com.enotes.note.repository.notes.UserId;
 
+import java.util.Collection;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class NotesService {
 
@@ -40,7 +42,7 @@ public class NotesService {
     }
 
     return notesRepository.findById(id)
-        .map(note -> new Note(note.getTitle(), note.getBody()))
+        .map(note -> new Note(note.getId(), note.getTitle(), note.getBody()))
         .orElseThrow(() -> new NotesException("Note with id: {" + id + "} is not found"));
   }
 
@@ -52,5 +54,17 @@ public class NotesService {
         .withTitle(note.getTitle())
         .withBody(note.getBody())
         .build();
+  }
+
+  public Collection<Note> getAllNotes(final Object userId) {
+    final UserId uId = new UserId((String) userId);
+    if (uId.getId() == null || uId.getId().isEmpty()) {
+      throw new NotesException("user id: {" + userId + "} is invalid");
+    }
+
+    return notesRepository.findAll(uId)
+        .stream()
+        .map(notesDetails -> new Note(notesDetails.getId(), notesDetails.getTitle(), notesDetails.getBody()))
+        .collect(Collectors.toList());
   }
 }

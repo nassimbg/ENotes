@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Collection;
 
 @RestController
 @RequestMapping(PathBuilder.NOTES)
@@ -35,5 +38,10 @@ public class NotesController {
   @GetMapping("{" + NOTE_ID + "}")
   public Note getNote(@PathVariable String id) {
     return this.notesService.getNote(id);
+  }
+
+  @GetMapping
+  public Collection<Note> getAllNotes(Authentication authentication) {
+    return this.notesService.getAllNotes(authentication.getPrincipal());
   }
 }

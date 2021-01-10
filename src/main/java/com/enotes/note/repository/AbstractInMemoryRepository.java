@@ -12,6 +12,10 @@ public abstract class AbstractInMemoryRepository<ID, T> implements Repository<ID
     cache = new ConcurrentHashMap<>();
   }
 
+  protected Map<ID, T> getCache() {
+    return cache;
+  }
+
   @Override
   public boolean putIfAbsent(final ID key, final T value) {
     return cache.putIfAbsent(key, value) == null;

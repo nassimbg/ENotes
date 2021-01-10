@@ -4,17 +4,20 @@ import java.util.Objects;
 
 public class Note {
 
+  private final String id;
   private final String title;
   private final String body;
 
-  public Note(final String title, final String body) {
+  public Note(String id, final String title, final String body) {
     this.title = title;
     this.body = body;
+    this.id = id;
   }
 
   private Note() {
     title = null;
     body = null;
+    id = null;
   }
 
   public String getTitle() {
@@ -25,8 +28,13 @@ public class Note {
     return body;
   }
 
+  public String getId() {
+    return id;
+  }
+
   @Override
   public boolean equals(final Object o) {
+
     if (this == o) {
       return true;
     }
@@ -34,19 +42,21 @@ public class Note {
       return false;
     }
     final Note note = (Note) o;
-    return Objects.equals(title, note.title)
+    return Objects.equals(id, note.id)
+        && Objects.equals(title, note.title)
         && Objects.equals(body, note.body);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(title, body);
+    return Objects.hash(id, title, body);
   }
 
   @Override
   public String toString() {
     return "Note{" +
-        "title='" + title + '\'' +
+        "id='" + id + '\'' +
+        ", title='" + title + '\'' +
         ", body='" + body + '\'' +
         '}';
   }

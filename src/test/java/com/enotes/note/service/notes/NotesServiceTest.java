@@ -7,6 +7,9 @@ import com.enotes.note.repository.notes.UserId;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,7 +21,7 @@ public class NotesServiceTest {
     final NotesRepository notesRepository = Mockito.mock(NotesRepository.class);
     final NotesService notesService = new NotesService(notesRepository);
 
-    final NoteId noteId = notesService.createNote("note 1", new Note("note title", "note body"));
+    final NoteId noteId = notesService.createNote("note 1", new Note(null,"note title", "note body"));
 
     assertNotNull(noteId);
   }
@@ -74,5 +77,33 @@ public class NotesServiceTest {
     String actualMessage = exception.getMessage();
 
     assertTrue(actualMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testGetAllNotesForUser() {
+    final NotesRepository notesRepository = Mockito.mock(NotesRepository.class);
+    final String id = "note 1";
+    final String noteTitle = "note title";
+    final String noteBody = "note body";
+    final UserId userId = new UserId("user 1");
+    final NotesDetails expectedNote1 = new NotesDetails.Builder(id, userId)
+        .withTitle(noteTitle)
+        .withBody(noteBody)
+        .build();
+
+    final String id2 = "note id 2";
+    final NotesDetails expectedNote2 = new NotesDetails.Builder(id2, userId)
+        .withTitle(noteTitle)
+        .withBody(noteBody)
+        .build();
+
+    Mockito.when(notesRepository.findAll(userId)).thenReturn(Arrays.asList(expectedNote1, expectedNote2));
+    final NotesService notesService = new NotesService(notesRepository);
+
+    final List<Note> note = (List<Note>) notesService.getAllNotes(userId.getId());
+    assertEquals(2, note.size());
+
+    assertNotNull(id, note.get(0).getId());
+    assertNotNull(id2, note.get(1).getId());
   }
 }
