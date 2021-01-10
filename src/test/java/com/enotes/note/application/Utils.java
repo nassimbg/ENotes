@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 public class Utils {
 
    public static ResultActions postRequest(MockMvc mvc, final Object ob, String mainPath, String path, ObjectMapper objectMapper ) throws Exception {
-    return mvc.perform(post(PathBuilder.buildPath('/', mainPath, path))
+    return mvc.perform(post(PathBuilder.buildPath(mainPath, path))
         .content(asJsonString(objectMapper, ob))
         .contentType(MediaType.APPLICATION_JSON)
         .accept(MediaType.APPLICATION_JSON));

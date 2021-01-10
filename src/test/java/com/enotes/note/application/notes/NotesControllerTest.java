@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -24,6 +25,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,7 +45,7 @@ class NotesControllerTest {
 
   @WithUserDetails
   @Test
-  public void createNote() throws Exception {
+  public void testCreateNote() throws Exception {
     final Note note = new Note("title", "body");
 
     final NoteId expectedNoteId = new NoteId("2233");
@@ -58,6 +61,29 @@ class NotesControllerTest {
     final NoteId noteId = fromJson(mvcResult.getResponse().getContentAsString(), NoteId.class);
 
     assertEquals(expectedNoteId.getId(), noteId.getId());
+  }
+
+  @WithUserDetails
+  @Test
+  public void testGetNote() throws Exception {
+    final Note note = new Note("title", "body");
+
+    final String id = "2233";
+    Mockito.when(notesService.getNote(Mockito.eq(id))).thenReturn(note);
+
+    final ResultActions resultActions = mvc.perform(get(PathBuilder.buildPath(PathBuilder.NOTES, id))
+        .contentType(MediaType.APPLICATION_JSON)
+        .accept(MediaType.APPLICATION_JSON));
+
+    final MvcResult mvcResult = resultActions
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andReturn();
+
+    final Note actualNote = fromJson(mvcResult.getResponse().getContentAsString(), Note.class);
+
+    assertEquals(note.getTitle(), actualNote.getTitle());
+    assertEquals(note.getBody(), actualNote.getBody());
   }
 
   private ResultActions postRequest(final Object ob, String path) throws Exception {

@@ -29,6 +29,21 @@ public class NotesService {
     return new NoteId(id);
   }
 
+  /**
+   * Retrieves the Note that has an id {@code id}
+   * @param id that is needed to fetch the corresponding note
+   * @return the note corresponding to this id
+   */
+  public Note getNote(final String id) {
+    if (id == null || id.isEmpty()) {
+      throw new NotesException("Note id: {" + id + "} is invalid");
+    }
+
+    return notesRepository.findById(id)
+        .map(note -> new Note(note.getTitle(), note.getBody()))
+        .orElseThrow(() -> new NotesException("Note with id: {" + id + "} is not found"));
+  }
+
   private NotesDetails createNoteDetails(final Object userId, final Note note) {
     final UserId uId = new UserId((String) userId);
     final String noteId = UUID.randomUUID().toString();
